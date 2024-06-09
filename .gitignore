@@ -1,0 +1,22 @@
+# Ignore SQLite database file
+main.db
+.env
+
+# Ignore Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+
+# Ignore directories
+bin/
+obj/
+
+# Ignore IDE and editor files
+.idea/
+.vscode/
+*.swp
+*~
+*.suo
