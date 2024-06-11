@@ -3,9 +3,7 @@ package controllers
 import (
 	"ecommercebackend/models"
 	"ecommercebackend/repository"
-	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -24,8 +22,6 @@ func GetProducts(c *gin.Context) {
 }
 
 func CreateProduct(c *gin.Context) {
-	// print request body
-	fmt.Println(c.Request.Body)
 	// Parse form data
 	name := c.PostForm("name")
 	description := c.PostForm("description")
@@ -39,26 +35,16 @@ func CreateProduct(c *gin.Context) {
 		return
 	}
 
-	// Save the image to disk
-	uploadPath := "uploads"
-	if _, err := os.Stat(uploadPath); os.IsNotExist(err) {
-		err := os.Mkdir(uploadPath, os.ModePerm)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-			return
-		}
-	}
-
+	// Generate a unique filename
 	fileExtension := strings.ToLower(filepath.Ext(file.Filename))
 	newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
-	filePath := filepath.Join(uploadPath, newFileName)
 
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+	// Upload the file to AWS S3
+	imgUrl, err := uploadToAzure(file, newFileName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
 		return
 	}
-
-	imgUrl := "/uploads/" + newFileName
 
 	// Create product
 	var product = models.Product{
@@ -71,7 +57,7 @@ func CreateProduct(c *gin.Context) {
 	productID, err := repository.CreateProduct(product)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: products.name") {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Product already exists, Try another name"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Product already exists, try another name"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create product"})
@@ -90,27 +76,19 @@ func UpdateProduct(c *gin.Context) {
 	// Handle image upload
 	file, err := c.FormFile("image")
 	if err == nil {
-		// Save the image to disk
-		uploadPath := "uploads"
-		if _, err := os.Stat(uploadPath); os.IsNotExist(err) {
-			err := os.Mkdir(uploadPath, os.ModePerm)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
-				return
-			}
-		}
-
+		// Generate a unique filename
 		fileExtension := strings.ToLower(filepath.Ext(file.Filename))
 		newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
-		filePath := filepath.Join(uploadPath, newFileName)
 
-		if err := c.SaveUploadedFile(file, filePath); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save image"})
+		// Upload the file to AWS S3
+		imgUrl, err := uploadToAzure(file, newFileName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
 			return
 		}
 
 		// Update the product's ImgUrl field
-		product.ImgUrl = filePath
+		product.ImgUrl = imgUrl
 	}
 
 	err = repository.UpdateProduct(product)

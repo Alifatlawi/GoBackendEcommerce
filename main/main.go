@@ -3,6 +3,8 @@ package main
 import (
 	"ecommercebackend/db"
 	"ecommercebackend/routes"
+	"github.com/joho/godotenv"
+	"log"
 	"os"
 	"time"
 
@@ -11,6 +13,12 @@ import (
 )
 
 func main() {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("Error loading .env file")
+	}
+
 	gin.SetMode(gin.ReleaseMode)
 	db.InitDB()
 	server := gin.Default()
@@ -28,7 +36,7 @@ func main() {
 	}))
 
 	routes.Setup(server)
-	err := server.Run(":" + getPort())
+	err = server.Run(":" + getPort())
 	if err != nil {
 		return
 	}
