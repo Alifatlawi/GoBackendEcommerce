@@ -34,7 +34,7 @@ func GetAllCategories() ([]models.Category, error) {
 }
 
 func CreateCategory(category models.Category) (int64, error) {
-	result, err := db.DB.Exec("INSERT INTO categories (name) VALUES (?)", category.Name)
+	result, err := db.DB.Exec("INSERT INTO categories (name) VALUES (@Name)", sql.Named("Name", category.Name))
 	if err != nil {
 		log.Println("Failed to create category:", err)
 		return 0, err
@@ -48,7 +48,7 @@ func CreateCategory(category models.Category) (int64, error) {
 }
 
 func UpdateCategory(category models.Category) error {
-	_, err := db.DB.Exec("UPDATE categories SET name = ? WHERE id = ?", category.Name, category.ID)
+	_, err := db.DB.Exec("UPDATE categories SET name = @Name WHERE id = @ID", sql.Named("Name", category.Name), sql.Named("ID", category.ID))
 	if err != nil {
 		log.Println("Failed to update category:", err)
 		return err
@@ -56,9 +56,8 @@ func UpdateCategory(category models.Category) error {
 	return nil
 }
 
-// DeleteCategory deletes a category from the database by its ID
 func DeleteCategory(id int) error {
-	_, err := db.DB.Exec("DELETE FROM categories WHERE id = ?", id)
+	_, err := db.DB.Exec("DELETE FROM categories WHERE id = @ID", sql.Named("ID", id))
 	if err != nil {
 		log.Println("Failed to delete category:", err)
 		return err
