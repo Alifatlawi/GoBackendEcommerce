@@ -2,6 +2,7 @@ package routes
 
 import (
 	"ecommercebackend/controllers"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,8 +11,12 @@ func Setup(router *gin.Engine) {
 	{
 		api.GET("/categories", controllers.GetCategories)
 		api.POST("/categories", controllers.CreateCategory)
-		api.GET("/products", func(c *gin.Context) {
-			c.JSON(200, gin.H{"message": "Products endpoint"})
-		})
+		api.GET("/products", controllers.GetProducts)
+		api.POST("/products", controllers.CreateProduct)
+		api.PUT("/products", controllers.UpdateProduct)
+		api.DELETE("/products", controllers.DeleteProduct)
+		api.GET("/products/:id", controllers.GetProductById)
+		api.POST("/products/:id", controllers.UpdateProduct)
+
 	}
 }

@@ -3,6 +3,7 @@ package controllers
 import (
 	"ecommercebackend/models"
 	"ecommercebackend/repository"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -19,6 +20,8 @@ func GetCategories(c *gin.Context) {
 }
 
 func CreateCategory(c *gin.Context) {
+	//print request body
+	fmt.Println(c.Request.Body)
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})

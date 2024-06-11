@@ -3,15 +3,18 @@ package main
 import (
 	"ecommercebackend/db"
 	"ecommercebackend/routes"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"time"
 )
 
 func main() {
 	gin.SetMode(gin.ReleaseMode)
 	db.InitDB()
 	server := gin.Default()
+	// serve static files
+	server.Static("/uploads", "./uploads")
 
 	// Apply the CORS middleware
 	server.Use(cors.New(cors.Config{
