@@ -16,6 +16,8 @@ func Setup(router *gin.Engine) {
 		api.DELETE("/products", controllers.DeleteProduct)
 		api.GET("/product/:id", controllers.GetProductById)
 		api.POST("/product/:id", controllers.UpdateProduct)
+
+		//this is the new route for getting products by category id
 		api.GET("/products/category/:category_id", controllers.GetProductsByCategoryId) // New route
 
 	}
