@@ -3,6 +3,7 @@ package main
 import (
 	"ecommercebackend/db"
 	"ecommercebackend/routes"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -27,8 +28,16 @@ func main() {
 	}))
 
 	routes.Setup(server)
-	err := server.Run(":8080")
+	err := server.Run(":" + getPort())
 	if err != nil {
 		return
 	}
+}
+
+func getPort() string {
+	port := "8080"
+	if value, exists := os.LookupEnv("PORT"); exists {
+		port = value
+	}
+	return port
 }

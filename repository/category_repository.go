@@ -46,3 +46,22 @@ func CreateCategory(category models.Category) (int64, error) {
 	}
 	return id, nil
 }
+
+func UpdateCategory(category models.Category) error {
+	_, err := db.DB.Exec("UPDATE categories SET name = ? WHERE id = ?", category.Name, category.ID)
+	if err != nil {
+		log.Println("Failed to update category:", err)
+		return err
+	}
+	return nil
+}
+
+// DeleteCategory deletes a category from the database by its ID
+func DeleteCategory(id int) error {
+	_, err := db.DB.Exec("DELETE FROM categories WHERE id = ?", id)
+	if err != nil {
+		log.Println("Failed to delete category:", err)
+		return err
+	}
+	return nil
+}

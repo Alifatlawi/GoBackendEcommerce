@@ -5,6 +5,7 @@ import (
 	"ecommercebackend/repository"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -37,4 +38,34 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Category created successfully", "id": categoryID})
+}
+
+func UpdateCategory(c *gin.Context) {
+	var category models.Category
+	if err := c.ShouldBindJSON(&category); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		return
+	}
+	err := repository.UpdateCategory(category)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Category updated successfully"})
+}
+
+func DeleteCategory(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
+		return
+	}
+
+	err = repository.DeleteCategory(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
 }
