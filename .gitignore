@@ -13,6 +13,7 @@ main.db
 # Ignore directories
 bin/
 obj/
+uploads/
 
 # Ignore IDE and editor files
 .idea/
