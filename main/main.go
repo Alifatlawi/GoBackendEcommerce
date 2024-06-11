@@ -3,6 +3,7 @@ package main
 import (
 	"ecommercebackend/db"
 	"ecommercebackend/routes"
+	"fmt"
 	"github.com/joho/godotenv"
 	"log"
 	"os"
@@ -17,6 +18,8 @@ func main() {
 	if err != nil {
 		log.Println("Error loading .env file, falling back to environment variables")
 	}
+
+	fmt.Println(os.Getenv("AZURE_SQL_SERVER_NAME"))
 
 	gin.SetMode(gin.ReleaseMode)
 	db.InitDB()
