@@ -67,11 +67,37 @@ func CreateProduct(c *gin.Context) {
 }
 
 func UpdateProduct(c *gin.Context) {
-	var product models.Product
-	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
+
+	var product models.Product
+
+	// Parse multipart form
+	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
+		return
+	}
+
+	// Extract fields from the form
+	product.Id = id
+	product.Name = c.PostForm("name")
+	product.Description = c.PostForm("description")
+	categoryId, err := strconv.Atoi(c.PostForm("category_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
+		return
+	}
+	product.CategoryId = categoryId
+	price, err := strconv.ParseFloat(c.PostForm("price"), 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
+		return
+	}
+	product.Price = price
 
 	// Handle image upload
 	file, err := c.FormFile("image")
@@ -80,7 +106,7 @@ func UpdateProduct(c *gin.Context) {
 		fileExtension := strings.ToLower(filepath.Ext(file.Filename))
 		newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
 
-		// Upload the file to AWS S3
+		// Upload the file to Azure (adjust function if needed)
 		imgUrl, err := uploadToAzure(file, newFileName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})

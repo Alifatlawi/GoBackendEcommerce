@@ -68,6 +68,10 @@ func UpdateProduct(product models.Product) error {
 		SET name = @Name, description = @Description, img_url = @ImgUrl, price = @Price, category_id = @CategoryID 
 		WHERE id = @ID
 	`
+
+	// Log the query and parameters for debugging
+	log.Printf("Executing query: %s with parameters: %+v", query, product)
+
 	_, err := db.DB.Exec(query,
 		sql.Named("Name", product.Name),
 		sql.Named("Description", product.Description),
