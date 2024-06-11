@@ -13,12 +13,7 @@ func GetAllProducts() ([]models.Product, error) {
 		log.Println("Failed to query products:", err)
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Println("Failed to close rows:", err)
-		}
-	}(rows)
+	defer rows.Close()
 
 	var products []models.Product
 	for rows.Next() {
@@ -36,24 +31,27 @@ func GetAllProducts() ([]models.Product, error) {
 func CreateProduct(newProduct models.Product) (int64, error) {
 	query := `
 		INSERT INTO products (name, description, img_url, price, category_id)
+		OUTPUT INSERTED.id
 		VALUES (@Name, @Description, @ImgUrl, @Price, @CategoryID)
 	`
-	result, err := db.DB.Exec(query,
+	var id int64
+	err := db.DB.QueryRow(query,
 		sql.Named("Name", newProduct.Name),
 		sql.Named("Description", newProduct.Description),
 		sql.Named("ImgUrl", newProduct.ImgUrl),
 		sql.Named("Price", newProduct.Price),
-		sql.Named("CategoryID", newProduct.CategoryId))
+		sql.Named("CategoryID", newProduct.CategoryId)).Scan(&id)
 	if err != nil {
 		log.Println("Failed to create product:", err)
 		return 0, err
 	}
-	return result.LastInsertId()
+	return id, nil
 }
 
 func GetProductById(id int) (models.Product, error) {
 	var product models.Product
-	err := db.DB.QueryRow("SELECT * FROM products WHERE id = @ID", sql.Named("ID", id)).Scan(&product.Id, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId)
+	query := "SELECT * FROM products WHERE id = @ID"
+	err := db.DB.QueryRow(query, sql.Named("ID", id)).Scan(&product.Id, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return product, nil
@@ -65,7 +63,12 @@ func GetProductById(id int) (models.Product, error) {
 }
 
 func UpdateProduct(product models.Product) error {
-	_, err := db.DB.Exec("UPDATE products SET name = @Name, description = @Description, img_url = @ImgUrl, price = @Price, category_id = @CategoryID WHERE id = @ID",
+	query := `
+		UPDATE products 
+		SET name = @Name, description = @Description, img_url = @ImgUrl, price = @Price, category_id = @CategoryID 
+		WHERE id = @ID
+	`
+	_, err := db.DB.Exec(query,
 		sql.Named("Name", product.Name),
 		sql.Named("Description", product.Description),
 		sql.Named("ImgUrl", product.ImgUrl),
@@ -80,7 +83,8 @@ func UpdateProduct(product models.Product) error {
 }
 
 func DeleteProduct(id int) error {
-	_, err := db.DB.Exec("DELETE FROM products WHERE id = @ID", sql.Named("ID", id))
+	query := "DELETE FROM products WHERE id = @ID"
+	_, err := db.DB.Exec(query, sql.Named("ID", id))
 	if err != nil {
 		log.Println("Failed to delete product:", err)
 		return err
@@ -89,17 +93,13 @@ func DeleteProduct(id int) error {
 }
 
 func GetProductsByCategoryID(categoryID int) ([]models.Product, error) {
-	rows, err := db.DB.Query("SELECT * FROM products WHERE category_id = @CategoryID", sql.Named("CategoryID", categoryID))
+	query := "SELECT * FROM products WHERE category_id = @CategoryID"
+	rows, err := db.DB.Query(query, sql.Named("CategoryID", categoryID))
 	if err != nil {
 		log.Println("Failed to query products:", err)
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Println("Failed to close rows:", err)
-		}
-	}(rows)
+	defer rows.Close()
 
 	var products []models.Product
 	for rows.Next() {

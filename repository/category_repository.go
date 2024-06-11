@@ -13,12 +13,7 @@ func GetAllCategories() ([]models.Category, error) {
 		log.Println("Failed to query categories:", err)
 		return nil, err
 	}
-	defer func(rows *sql.Rows) {
-		err := rows.Close()
-		if err != nil {
-			log.Println("Failed to close rows:", err)
-		}
-	}(rows)
+	defer rows.Close()
 
 	var categories []models.Category
 	for rows.Next() {
@@ -34,14 +29,15 @@ func GetAllCategories() ([]models.Category, error) {
 }
 
 func CreateCategory(category models.Category) (int64, error) {
-	result, err := db.DB.Exec("INSERT INTO categories (name) VALUES (@Name)", sql.Named("Name", category.Name))
+	query := `
+		INSERT INTO categories (name)
+		OUTPUT INSERTED.id
+		VALUES (@Name)
+	`
+	var id int64
+	err := db.DB.QueryRow(query, sql.Named("Name", category.Name)).Scan(&id)
 	if err != nil {
 		log.Println("Failed to create category:", err)
-		return 0, err
-	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		log.Println("Failed to get last insert ID:", err)
 		return 0, err
 	}
 	return id, nil
