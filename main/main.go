@@ -13,16 +13,16 @@ import (
 )
 
 func main() {
-
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("Error loading .env file")
+		log.Println("Error loading .env file, falling back to environment variables")
 	}
 
 	gin.SetMode(gin.ReleaseMode)
 	db.InitDB()
 	server := gin.Default()
-	// serve static files
+
+	// Serve static files
 	server.Static("/uploads", "./uploads")
 
 	// Apply the CORS middleware
@@ -36,16 +36,19 @@ func main() {
 	}))
 
 	routes.Setup(server)
-	err = server.Run(":" + getPort())
+
+	port := getPort()
+	log.Printf("Starting server on port %s", port)
+	err = server.Run(":" + port)
 	if err != nil {
-		return
+		log.Fatalf("Server failed to start: %v", err)
 	}
 }
 
 func getPort() string {
-	port := "8080"
-	if value, exists := os.LookupEnv("PORT"); exists {
-		port = value
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
 	}
 	return port
 }
