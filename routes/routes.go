@@ -27,6 +27,7 @@ func Setup(router *gin.Engine) {
 			api.PUT("/products", controllers.UpdateProduct)
 			api.DELETE("/products", controllers.DeleteProduct)
 			api.POST("/product/:id", controllers.UpdateProduct)
+			api.PUT("/product/:id", controllers.UpdateProduct)
 		}
 	}
 }
