@@ -74,48 +74,63 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
+	// Check content type to handle different payloads
+	contentType := c.GetHeader("Content-Type")
 	var product models.Product
 
-	// Parse multipart form
-	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
-		return
-	}
-
-	// Extract fields from the form
-	product.Id = id
-	product.Name = c.PostForm("name")
-	product.Description = c.PostForm("description")
-	categoryId, err := strconv.Atoi(c.PostForm("category_id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
-		return
-	}
-	product.CategoryId = categoryId
-	price, err := strconv.ParseFloat(c.PostForm("price"), 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
-		return
-	}
-	product.Price = price
-
-	// Handle image upload
-	file, err := c.FormFile("image")
-	if err == nil {
-		// Generate a unique filename
-		fileExtension := strings.ToLower(filepath.Ext(file.Filename))
-		newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
-
-		// Upload the file to Azure (adjust function if needed)
-		imgUrl, err := uploadToAzure(file, newFileName)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
+	if strings.HasPrefix(contentType, "application/json") {
+		// Handle JSON payload
+		if err := c.ShouldBindJSON(&product); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
+			return
+		}
+	} else if strings.HasPrefix(contentType, "multipart/form-data") {
+		// Parse multipart form
+		if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
 			return
 		}
 
-		// Update the product's ImgUrl field
-		product.ImgUrl = imgUrl
+		// Extract fields from the form
+		product.Id = id
+		product.Name = c.PostForm("name")
+		product.Description = c.PostForm("description")
+		categoryId, err := strconv.Atoi(c.PostForm("category_id"))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
+			return
+		}
+		product.CategoryId = categoryId
+		price, err := strconv.ParseFloat(c.PostForm("price"), 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
+			return
+		}
+		product.Price = price
+
+		// Handle image upload
+		file, err := c.FormFile("image")
+		if err == nil {
+			// Generate a unique filename
+			fileExtension := strings.ToLower(filepath.Ext(file.Filename))
+			newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
+
+			// Upload the file to Azure (adjust function if needed)
+			imgUrl, err := uploadToAzure(file, newFileName)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
+				return
+			}
+
+			// Update the product's ImgUrl field
+			product.ImgUrl = imgUrl
+		}
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported content type"})
+		return
 	}
+
+	product.Id = id // Ensure the ID is set
 
 	err = repository.UpdateProduct(product)
 	if err != nil {
