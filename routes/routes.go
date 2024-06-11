@@ -2,7 +2,6 @@ package routes
 
 import (
 	"ecommercebackend/controllers"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,8 +14,9 @@ func Setup(router *gin.Engine) {
 		api.POST("/products", controllers.CreateProduct)
 		api.PUT("/products", controllers.UpdateProduct)
 		api.DELETE("/products", controllers.DeleteProduct)
-		api.GET("/products/:id", controllers.GetProductById)
-		api.POST("/products/:id", controllers.UpdateProduct)
+		api.GET("/product/:id", controllers.GetProductById)
+		api.POST("/product/:id", controllers.UpdateProduct)
+		api.GET("/products/category/:category_id", controllers.GetProductsByCategoryId) // New route
 
 	}
 }

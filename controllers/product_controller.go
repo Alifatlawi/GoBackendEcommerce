@@ -136,26 +136,36 @@ func DeleteProduct(c *gin.Context) {
 }
 
 func GetProductById(c *gin.Context) {
-	var product models.Product
-	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
-	product, err := repository.GetProductById(product.Id)
+
+	product, err := repository.GetProductById(id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query product"})
 		return
 	}
+
+	if product.Id == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+
 	c.JSON(http.StatusOK, product)
 }
 
 func GetProductsByCategoryId(c *gin.Context) {
-	var product models.Product
-	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	categoryIdParam := c.Param("category_id")
+	categoryId, err := strconv.Atoi(categoryIdParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
 		return
 	}
-	products, err := repository.GetProductsByCategoryID(product.CategoryId)
+
+	products, err := repository.GetProductsByCategoryID(categoryId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query products"})
 		return
