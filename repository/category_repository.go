@@ -9,7 +9,7 @@ import (
 )
 
 func GetAllCategories() ([]models.Category, error) {
-	rows, err := db.DB.Query("SELECT * FROM categories")
+	rows, err := db.DB.Query("SELECT id, name FROM categories")
 	if err != nil {
 		log.Println("Failed to query categories:", err)
 		return nil, err
@@ -29,17 +29,17 @@ func GetAllCategories() ([]models.Category, error) {
 	return categories, nil
 }
 
-func CreateCategory(category models.Category) (int64, error) {
+func CreateCategory(category models.Category) (string, error) {
 	query := `
   INSERT INTO categories (name)
   OUTPUT INSERTED.id
   VALUES (@Name)
  `
-	var id int64
+	var id string
 	err := db.DB.QueryRow(query, sql.Named("Name", category.Name)).Scan(&id)
 	if err != nil {
 		log.Println("Failed to create category:", err)
-		return 0, err
+		return "", err
 	}
 	return id, nil
 }
@@ -53,7 +53,7 @@ func UpdateCategory(category models.Category) error {
 	return nil
 }
 
-func DeleteCategory(id int) error {
+func DeleteCategory(id string) error {
 	_, err := db.DB.Exec("DELETE FROM categories WHERE id = @ID", sql.Named("ID", id))
 	if err != nil {
 		log.Println("Failed to delete category:", err)
@@ -76,7 +76,7 @@ func GetCategoryByName(name string) (models.Category, error) {
 	return category, nil
 }
 
-func DeleteProductsByCategoryId(categoryId int64) error {
+func DeleteProductsByCategoryId(categoryId string) error {
 	query := "DELETE FROM products WHERE category_id = @CategoryID"
 	_, err := db.DB.Exec(query, sql.Named("CategoryID", categoryId))
 	if err != nil {

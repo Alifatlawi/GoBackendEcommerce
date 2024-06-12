@@ -1,6 +1,6 @@
 package models
 
 type Category struct {
-	ID   int64  `json:"id"`
+	ID   string `json:"id"`
 	Name string `json:"name" binding:"required"`
 }

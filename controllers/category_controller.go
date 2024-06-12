@@ -5,7 +5,6 @@ import (
 	"ecommercebackend/repository"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -54,11 +53,7 @@ func UpdateCategory(c *gin.Context) {
 
 func DeleteCategory(c *gin.Context) {
 	idParam := c.Param("id")
-	id, err := strconv.ParseInt(idParam, 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
-		return
-	}
+	id := idParam
 
 	// Delete all products that belong to this category
 	if err := repository.DeleteProductsByCategoryId(id); err != nil {
@@ -67,7 +62,7 @@ func DeleteCategory(c *gin.Context) {
 	}
 
 	// Delete the category
-	if err := repository.DeleteCategory(int(id)); err != nil {
+	if err := repository.DeleteCategory(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category"})
 		return
 	}

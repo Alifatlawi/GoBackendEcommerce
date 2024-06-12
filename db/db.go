@@ -44,16 +44,16 @@ func createTables() {
     );`
 
 	createProductsTable := `
-    IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='products' AND xtype='U')
-    CREATE TABLE products (
-        id INT PRIMARY KEY IDENTITY(1,1),
-        name NVARCHAR(100) NOT NULL,
-        description NVARCHAR(255) NOT NULL,
-        img_url NVARCHAR(255) NOT NULL,
-        price FLOAT NOT NULL,
-        category_id INT,
-        FOREIGN KEY (category_id) REFERENCES categories(id)
-    );`
+	IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='products' AND xtype='U')
+	CREATE TABLE products (
+		id INT PRIMARY KEY IDENTITY(1,1),
+		name NVARCHAR(100) NOT NULL,
+		description NVARCHAR(255) NOT NULL,
+		img_url NVARCHAR(255) NOT NULL,
+		price NVARCHAR(255) NOT NULL,
+		category_id NVARCHAR(255),
+		FOREIGN KEY (category_id) REFERENCES categories(id)
+	);`
 
 	_, err := DB.Exec(createCategoriesTable)
 	if err != nil {
