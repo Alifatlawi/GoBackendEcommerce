@@ -76,6 +76,20 @@ func GetCategoryByName(name string) (models.Category, error) {
 	return category, nil
 }
 
+func GetCategoryById(id string) (models.Category, error) {
+	var category models.Category
+	query := "SELECT id, name FROM categories WHERE id = @ID"
+	err := db.DB.QueryRow(query, sql.Named("ID", id)).Scan(&category.ID, &category.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return category, nil
+		}
+		log.Println("Failed to query category:", err)
+		return category, err
+	}
+	return category, nil
+}
+
 func DeleteProductsByCategoryId(categoryId string) error {
 	query := "DELETE FROM products WHERE category_id = @CategoryID"
 	_, err := db.DB.Exec(query, sql.Named("CategoryID", categoryId))

@@ -27,18 +27,11 @@ func GetProducts(c *gin.Context) {
 func CreateProduct(c *gin.Context) {
 	var product models.Product
 
-	// Parse form data
-	if err := c.ShouldBind(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
-		fmt.Println("Binding Error:", err) // Debugging log
-		return
-	}
-
-	// Debugging: Print the parsed product
-	fmt.Printf("Parsed Product: %+v\n", product)
-
-	// Get the category name from the form data
-	categoryName := c.PostForm("category_name")
+	// Parse individual form data fields
+	product.Name = c.PostForm("name")
+	product.Description = c.PostForm("description")
+	product.Price = c.PostForm("price")
+	product.CategoryId = c.PostForm("category_id")
 
 	// Handle image upload
 	file, err := c.FormFile("image")
@@ -59,19 +52,19 @@ func CreateProduct(c *gin.Context) {
 	}
 	product.ImgUrl = imgUrl
 
-	// Check if the category name exists
-	existingCategory, err := repository.GetCategoryByName(categoryName)
+	// Debugging: Print the parsed product
+	fmt.Printf("Parsed Product: %+v\n", product)
+
+	// Check if the category ID exists
+	existingCategory, err := repository.GetCategoryById(product.CategoryId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query category"})
 		return
 	}
 	if existingCategory.ID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category name"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
 		return
 	}
-
-	// Set the category ID from the existing category
-	product.CategoryId = existingCategory.ID
 
 	// Create product in the repository
 	productID, err := repository.CreateProduct(product)
