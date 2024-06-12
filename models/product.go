@@ -1,10 +1,10 @@
 package models
 
 type Product struct {
-	Id          int     `json:"id"`
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
+	ID          int64   `json:"id"`
+	Name        string  `json:"name" form:"name" binding:"required"`
+	Description string  `json:"description" form:"description" binding:"required"`
 	ImgUrl      string  `json:"img_url"`
-	CategoryId  int     `json:"category_id"`
-	Price       float64 `json:"price"`
+	Price       float64 `json:"price" form:"price" binding:"required"`
+	CategoryId  int64   `json:"category_id"`
 }

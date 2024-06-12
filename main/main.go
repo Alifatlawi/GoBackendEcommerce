@@ -3,23 +3,19 @@ package main
 import (
 	"ecommercebackend/db"
 	"ecommercebackend/routes"
-	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
+	if err := godotenv.Load(); err != nil {
 		log.Println("Error loading .env file, falling back to environment variables")
 	}
-
-	fmt.Println(os.Getenv("AZURE_SQL_SERVER_NAME"))
 
 	gin.SetMode(gin.ReleaseMode)
 	db.InitDB()
@@ -42,8 +38,7 @@ func main() {
 
 	port := getPort()
 	log.Printf("Starting server on port %s", port)
-	err = server.Run(":" + port)
-	if err != nil {
+	if err := server.Run(":" + port); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
 	}
 }

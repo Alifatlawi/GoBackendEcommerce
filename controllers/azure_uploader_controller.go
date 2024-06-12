@@ -3,18 +3,18 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/Azure/azure-storage-blob-go/azblob"
 	"log"
 	"mime/multipart"
 	"net/url"
 	"os"
+
+	"github.com/Azure/azure-storage-blob-go/azblob"
 )
 
 func uploadToAzure(file *multipart.FileHeader, filename string) (string, error) {
-
-	var accountName = os.Getenv("AZURE_STORAGE_ACCOUNT")
-	var accountKey = os.Getenv("AZURE_STORAGE_ACCESS_KEY")
-	var containerName = os.Getenv("AZURE_STORAGE_CONTAINER")
+	accountName := os.Getenv("AZURE_STORAGE_ACCOUNT")
+	accountKey := os.Getenv("AZURE_STORAGE_ACCESS_KEY")
+	containerName := os.Getenv("AZURE_STORAGE_CONTAINER")
 
 	credential, err := azblob.NewSharedKeyCredential(accountName, accountKey)
 	if err != nil {
@@ -48,4 +48,32 @@ func uploadToAzure(file *multipart.FileHeader, filename string) (string, error) 
 	}
 
 	return blobURL.String(), nil
+}
+
+// deleteFromAzure deletes a blob from Azure Storage
+func deleteFromAzure(imageURL string) error {
+	accountName := os.Getenv("AZURE_STORAGE_ACCOUNT")
+	accountKey := os.Getenv("AZURE_STORAGE_ACCESS_KEY")
+
+	credential, err := azblob.NewSharedKeyCredential(accountName, accountKey)
+	if err != nil {
+		log.Printf("Invalid credentials with error: %s", err.Error())
+		return err
+	}
+
+	p := azblob.NewPipeline(credential, azblob.PipelineOptions{})
+	URL, err := url.Parse(imageURL)
+	if err != nil {
+		return err
+	}
+
+	blobURL := azblob.NewBlobURL(*URL, p)
+
+	_, err = blobURL.Delete(context.Background(), azblob.DeleteSnapshotsOptionNone, azblob.BlobAccessConditions{})
+	if err != nil {
+		log.Printf("Failed to delete blob: %v", err)
+		return err
+	}
+
+	return nil
 }

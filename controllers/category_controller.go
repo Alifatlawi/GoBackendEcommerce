@@ -14,14 +14,13 @@ import (
 func GetCategories(c *gin.Context) {
 	categories, err := repository.GetAllCategories()
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to query categories"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query categories"})
 		return
 	}
-	c.JSON(200, categories)
+	c.JSON(http.StatusOK, categories)
 }
 
 func CreateCategory(c *gin.Context) {
-	//print request body
 	fmt.Println(c.Request.Body)
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
@@ -46,8 +45,7 @@ func UpdateCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
-	err := repository.UpdateCategory(category)
-	if err != nil {
+	if err := repository.UpdateCategory(category); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
 		return
 	}
@@ -56,16 +54,23 @@ func UpdateCategory(c *gin.Context) {
 
 func DeleteCategory(c *gin.Context) {
 	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+	id, err := strconv.ParseInt(idParam, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
 		return
 	}
 
-	err = repository.DeleteCategory(id)
-	if err != nil {
+	// Delete all products that belong to this category
+	if err := repository.DeleteProductsByCategoryId(id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete products by category"})
+		return
+	}
+
+	// Delete the category
+	if err := repository.DeleteCategory(int(id)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Category deleted successfully"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "Category and associated products deleted successfully"})
 }

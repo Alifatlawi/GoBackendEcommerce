@@ -3,6 +3,7 @@ package controllers
 import (
 	"ecommercebackend/models"
 	"ecommercebackend/repository"
+	"fmt"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -12,21 +13,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GetProducts Handle Get Products
 func GetProducts(c *gin.Context) {
 	products, err := repository.GetAllProducts()
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to query products"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query products"})
 		return
 	}
-	c.JSON(200, products)
+	c.JSON(http.StatusOK, products)
 }
 
+// CreateProduct Handle Create Product
 func CreateProduct(c *gin.Context) {
+	var product models.Product
+
 	// Parse form data
-	name := c.PostForm("name")
-	description := c.PostForm("description")
-	categoryId, _ := strconv.Atoi(c.PostForm("category_id"))
-	price, _ := strconv.ParseFloat(c.PostForm("price"), 64)
+	if err := c.ShouldBind(&product); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		fmt.Println("Binding Error:", err) // Debugging log
+		return
+	}
+
+	// Debugging: Print the parsed product
+	fmt.Printf("Parsed Product: %+v\n", product)
+
+	// Get the category name from the form data
+	categoryName := c.PostForm("category_name")
 
 	// Handle image upload
 	file, err := c.FormFile("image")
@@ -39,21 +51,29 @@ func CreateProduct(c *gin.Context) {
 	fileExtension := strings.ToLower(filepath.Ext(file.Filename))
 	newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
 
-	// Upload the file to AWS S3
+	// Upload the file to Azure
 	imgUrl, err := uploadToAzure(file, newFileName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
 		return
 	}
+	product.ImgUrl = imgUrl
 
-	// Create product
-	var product = models.Product{
-		Name:        name,
-		Description: description,
-		CategoryId:  categoryId,
-		ImgUrl:      imgUrl,
-		Price:       price,
+	// Check if the category name exists
+	existingCategory, err := repository.GetCategoryByName(categoryName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query category"})
+		return
 	}
+	if existingCategory.ID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category name"})
+		return
+	}
+
+	// Set the category ID from the existing category
+	product.CategoryId = existingCategory.ID
+
+	// Create product in the repository
 	productID, err := repository.CreateProduct(product)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: products.name") {
@@ -66,6 +86,7 @@ func CreateProduct(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Product created successfully", "id": productID})
 }
 
+// UpdateProduct Handle Update Product
 func UpdateProduct(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
@@ -74,86 +95,122 @@ func UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Check content type to handle different payloads
-	contentType := c.GetHeader("Content-Type")
 	var product models.Product
 
+	// Handle different content types
+	contentType := c.GetHeader("Content-Type")
 	if strings.HasPrefix(contentType, "application/json") {
-		// Handle JSON payload
 		if err := c.ShouldBindJSON(&product); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON payload"})
 			return
 		}
 	} else if strings.HasPrefix(contentType, "multipart/form-data") {
-		// Parse multipart form
 		if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
 			return
 		}
-
-		// Extract fields from the form
-		product.Id = id
-		product.Name = c.PostForm("name")
-		product.Description = c.PostForm("description")
-		categoryId, err := strconv.Atoi(c.PostForm("category_id"))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid category ID"})
+		if err := c.ShouldBind(&product); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid form data"})
 			return
-		}
-		product.CategoryId = categoryId
-		price, err := strconv.ParseFloat(c.PostForm("price"), 64)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid price"})
-			return
-		}
-		product.Price = price
-
-		// Handle image upload
-		file, err := c.FormFile("image")
-		if err == nil {
-			// Generate a unique filename
-			fileExtension := strings.ToLower(filepath.Ext(file.Filename))
-			newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
-
-			// Upload the file to Azure (adjust function if needed)
-			imgUrl, err := uploadToAzure(file, newFileName)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
-				return
-			}
-
-			// Update the product's ImgUrl field
-			product.ImgUrl = imgUrl
 		}
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Unsupported content type"})
 		return
 	}
 
-	product.Id = id // Ensure the ID is set
-
-	err = repository.UpdateProduct(product)
-	if err != nil {
+	product.ID = int64(id)
+	if err := repository.UpdateProduct(product); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Product updated successfully"})
 }
 
-func DeleteProduct(c *gin.Context) {
-	var product models.Product
-	if err := c.ShouldBindJSON(&product); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+// UpdateProductImage Handle Update Product Image
+func UpdateProductImage(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
 		return
 	}
-	err := repository.DeleteProduct(product.Id)
+
+	product, err := repository.GetProductById(id)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query product"})
+		return
+	}
+
+	// Handle image upload
+	file, err := c.FormFile("image")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image upload failed"})
+		return
+	}
+
+	// Generate a unique filename
+	fileExtension := strings.ToLower(filepath.Ext(file.Filename))
+	newFileName := strconv.FormatInt(time.Now().UnixNano(), 10) + fileExtension
+
+	// Upload the file to Azure
+	imgUrl, err := uploadToAzure(file, newFileName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to upload image"})
+		return
+	}
+
+	// Delete the old image from Azure storage
+	if err := deleteFromAzure(product.ImgUrl); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete old image from Azure storage"})
+		return
+	}
+
+	// Update the product's ImgUrl field
+	product.ImgUrl = imgUrl
+
+	if err := repository.UpdateProduct(product); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update product image"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Product image updated successfully"})
+}
+
+// DeleteProduct Handle Delete Product
+func DeleteProduct(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid product ID"})
+		return
+	}
+
+	product, err := repository.GetProductById(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query product"})
+		return
+	}
+
+	if product.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
+		return
+	}
+
+	if err := repository.DeleteProduct(id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete product"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Product deleted successfully"})
+
+	// Delete the image from Azure storage
+	if err := deleteFromAzure(product.ImgUrl); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete image from Azure storage"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Product and associated image deleted successfully"})
 }
 
+// GetProductById Handle Get Product by ID
 func GetProductById(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
@@ -168,7 +225,7 @@ func GetProductById(c *gin.Context) {
 		return
 	}
 
-	if product.Id == 0 {
+	if product.ID == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Product not found"})
 		return
 	}
@@ -176,6 +233,7 @@ func GetProductById(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
+// GetProductsByCategoryId Handle Get Products by Category ID
 func GetProductsByCategoryId(c *gin.Context) {
 	categoryIdParam := c.Param("category_id")
 	categoryId, err := strconv.Atoi(categoryIdParam)

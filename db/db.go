@@ -3,10 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/microsoft/go-mssqldb"
 	"log"
 	"os"
 	"strconv"
+
+	_ "github.com/microsoft/go-mssqldb"
 )
 
 var DB *sql.DB

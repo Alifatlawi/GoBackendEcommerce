@@ -1,10 +1,10 @@
 package controllers
 
 import (
-	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -30,7 +30,7 @@ func Login(c *gin.Context) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": 1,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // Token valid for 24 hours
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	})
 
 	tokenString, err := token.SignedString(secretKey)

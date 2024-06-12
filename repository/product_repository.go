@@ -18,7 +18,7 @@ func GetAllProducts() ([]models.Product, error) {
 	var products []models.Product
 	for rows.Next() {
 		var product models.Product
-		if err := rows.Scan(&product.Id, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId); err != nil {
 			log.Println("Failed to scan product:", err)
 			return nil, err
 		}
@@ -51,7 +51,7 @@ func CreateProduct(newProduct models.Product) (int64, error) {
 func GetProductById(id int) (models.Product, error) {
 	var product models.Product
 	query := "SELECT * FROM products WHERE id = @ID"
-	err := db.DB.QueryRow(query, sql.Named("ID", id)).Scan(&product.Id, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId)
+	err := db.DB.QueryRow(query, sql.Named("ID", id)).Scan(&product.ID, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return product, nil
@@ -69,16 +69,13 @@ func UpdateProduct(product models.Product) error {
 		WHERE id = @ID
 	`
 
-	// Log the query and parameters for debugging
-	log.Printf("Executing query: %s with parameters: %+v", query, product)
-
 	_, err := db.DB.Exec(query,
 		sql.Named("Name", product.Name),
 		sql.Named("Description", product.Description),
 		sql.Named("ImgUrl", product.ImgUrl),
 		sql.Named("Price", product.Price),
 		sql.Named("CategoryID", product.CategoryId),
-		sql.Named("ID", product.Id))
+		sql.Named("ID", product.ID))
 	if err != nil {
 		log.Println("Failed to update product:", err)
 		return err
@@ -108,7 +105,7 @@ func GetProductsByCategoryID(categoryID int) ([]models.Product, error) {
 	var products []models.Product
 	for rows.Next() {
 		var product models.Product
-		if err := rows.Scan(&product.Id, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId); err != nil {
+		if err := rows.Scan(&product.ID, &product.Name, &product.Description, &product.ImgUrl, &product.Price, &product.CategoryId); err != nil {
 			log.Println("Failed to scan product:", err)
 			return nil, err
 		}

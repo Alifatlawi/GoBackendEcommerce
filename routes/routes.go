@@ -11,7 +11,7 @@ func Setup(router *gin.Engine) {
 	{
 		api.POST("/login", controllers.Login)
 
-		//public routes
+		// Public routes
 		api.GET("/categories", controllers.GetCategories)
 		api.GET("/products", controllers.GetProducts)
 		api.GET("/product/:id", controllers.GetProductById)
@@ -21,13 +21,16 @@ func Setup(router *gin.Engine) {
 		api.Use(middleware.JWTAuth())
 		{
 			api.POST("/categories", controllers.CreateCategory)
-			api.PUT("/categories", controllers.UpdateCategory)    // Ensure UpdateCategory is defined
-			api.DELETE("/categories", controllers.DeleteCategory) // Ensure DeleteCategory is defined
+			api.PUT("/categories", controllers.UpdateCategory)
+			api.DELETE("/categories/:id", controllers.DeleteCategory)
+
 			api.POST("/products", controllers.CreateProduct)
-			api.PUT("/products", controllers.UpdateProduct)
-			api.DELETE("/products", controllers.DeleteProduct)
-			api.POST("/product/:id", controllers.UpdateProduct)
 			api.PUT("/product/:id", controllers.UpdateProduct)
+			api.PUT("/product/:id/image", controllers.UpdateProductImage)
+			api.DELETE("/product/:id", controllers.DeleteProduct)
+
+			// Route to delete all data
+			api.DELETE("/delete-all", controllers.DeleteAllData)
 		}
 	}
 }
