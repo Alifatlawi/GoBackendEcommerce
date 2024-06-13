@@ -21,7 +21,7 @@ func Setup(router *gin.Engine) {
 		api.Use(middleware.JWTAuth())
 		{
 			api.POST("/categories", controllers.CreateCategory)
-			api.PUT("/categories", controllers.UpdateCategory)
+			api.PUT("/categories/:id", controllers.UpdateCategory)
 			api.DELETE("/categories/:id", controllers.DeleteCategory)
 
 			api.POST("/products", controllers.CreateProduct)

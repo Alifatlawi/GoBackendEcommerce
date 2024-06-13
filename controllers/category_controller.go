@@ -3,67 +3,92 @@ package controllers
 import (
 	"ecommercebackend/models"
 	"ecommercebackend/repository"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
+// ErrorResponse sends a JSON response with the given status code and error message
+func ErrorResponse(c *gin.Context, code int, message string) {
+	c.JSON(code, gin.H{"error": message})
+}
+
 func GetCategories(c *gin.Context) {
 	categories, err := repository.GetAllCategories()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query categories"})
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to query categories")
 		return
 	}
 	c.JSON(http.StatusOK, categories)
 }
 
 func CreateCategory(c *gin.Context) {
-	fmt.Println(c.Request.Body)
 	var newCategory models.Category
 	if err := c.ShouldBindJSON(&newCategory); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+		ErrorResponse(c, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 	categoryID, err := repository.CreateCategory(newCategory)
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed: categories.name") {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Category already exists, Try another name"})
+			ErrorResponse(c, http.StatusBadRequest, "Category already exists, try another name")
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create category"})
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to create category")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"message": "Category created successfully", "id": categoryID})
 }
 
 func UpdateCategory(c *gin.Context) {
-	var category models.Category
-	if err := c.ShouldBindJSON(&category); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
+	id := c.Param("id")
+
+	var json struct {
+		Name string `json:"name" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&json); err != nil {
+		ErrorResponse(c, http.StatusBadRequest, "Invalid JSON payload")
 		return
 	}
+
+	category, err := repository.GetCategoryById(id)
+	if err != nil {
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to query category")
+		return
+	}
+	if category.ID == "" {
+		ErrorResponse(c, http.StatusNotFound, "Category not found")
+		return
+	}
+
+	category.Name = json.Name
+
 	if err := repository.UpdateCategory(category); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update category"})
+		if strings.Contains(err.Error(), "UNIQUE constraint failed: categories.name") {
+			ErrorResponse(c, http.StatusBadRequest, "Category name already exists")
+			return
+		}
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to update category")
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "Category updated successfully"})
 }
 
 func DeleteCategory(c *gin.Context) {
-	idParam := c.Param("id")
-	id := idParam
+	id := c.Param("id")
 
 	// Delete all products that belong to this category
 	if err := repository.DeleteProductsByCategoryId(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete products by category"})
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to delete products by category")
 		return
 	}
 
 	// Delete the category
 	if err := repository.DeleteCategory(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete category"})
+		ErrorResponse(c, http.StatusInternalServerError, "Failed to delete category")
 		return
 	}
 

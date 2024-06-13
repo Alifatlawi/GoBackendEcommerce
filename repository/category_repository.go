@@ -81,7 +81,7 @@ func GetCategoryById(id string) (models.Category, error) {
 	query := "SELECT id, name FROM categories WHERE id = @ID"
 	err := db.DB.QueryRow(query, sql.Named("ID", id)).Scan(&category.ID, &category.Name)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return category, nil
 		}
 		log.Println("Failed to query category:", err)
