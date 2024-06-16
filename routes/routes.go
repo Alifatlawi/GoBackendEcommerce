@@ -16,6 +16,8 @@ func Setup(router *gin.Engine) {
 		api.GET("/products", controllers.GetProducts)
 		api.GET("/product/:id", controllers.GetProductById)
 		api.GET("/products/category/:category_id", controllers.GetProductsByCategoryId)
+		api.POST("/orders", controllers.CreateOrder)
+		api.GET("/orders", controllers.GetOrders)
 
 		// Routes that require authentication
 		api.Use(middleware.JWTAuth())
@@ -28,6 +30,11 @@ func Setup(router *gin.Engine) {
 			api.PUT("/product/:id", controllers.UpdateProduct)
 			api.PUT("/product/:id/image", controllers.UpdateProductImage)
 			api.DELETE("/product/:id", controllers.DeleteProduct)
+
+			// Order routes
+			api.GET("/orders/:id", controllers.GetOrderById)
+			api.PUT("/orders/:id", controllers.UpdateOrder)
+			api.DELETE("/orders/:id", controllers.DeleteOrder)
 
 			// Route to delete all data
 			api.DELETE("/delete-all", controllers.DeleteAllData)
